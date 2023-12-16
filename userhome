@@ -10,14 +10,16 @@ elif [[ -n "$1" ]] then
     file="/etc/passwd"
     login="$1"
 fi
-grep "$file" "$login"  >/dev/null 2>&1
-if [[ "$?" == 2 ]] then
-    echo "File $file is not found">&2
-    exit 2
-elif [[ "$?" == 1 ]] then
-    echo "User $login is not found">&2
-    exit 1
+if [[ -e "$file" ]] then
+    grep -E "^$login(:)" "$file" >/dev/null 2>&2
+    if [[ "$?" != 0 ]] then
+       echo "User $login is not found">&2
+       exit 1
+    else
+       echo $(grep -E "^$login(:)" "$file" | awk -F":" '{print $7}')
+       exit 0
+    fi
 else
-    echo $(grep "$login" "$file" | cut -d ":" -f 6)
-    exit 0
+    echo "File $file doesn't exist">&2
+    exit 2
 fi
