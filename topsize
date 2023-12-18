@@ -1,0 +1,73 @@
+#!/bin/bash
+N=
+fa=
+minsize=1
+h=0
+sep=
+for arg in "$@"
+do    
+    if [[ "$arg" == "--" ]] then
+       sep=1
+    fi
+    if [[ "$sep" != 1 ]] then
+        if [[ "$arg" == "--help" ]] then
+            echo "--help is for help"
+            echo "-N is for file number"
+            echo "-h is for good format output"
+            echo "Directories with - should go after --"
+            exit 0
+        elif [[ "$N" == 1 ]] then
+           fa="$arg"
+           N=0
+        elif [[ "$s" == 1 ]] then
+            minsize="$arg"
+            s=0
+        elif [[ "$arg" == "-h" ]] then
+            h=1
+        elif [[ "$arg" == "-N" ]] then
+            N=1
+        elif [[ "$arg" == "-s" ]] then
+            s=1
+        elif [[ ${arg:0:1} == "-" ]] then
+            echo "Option $arg is not supported">&2
+            exit 2
+        fi
+    fi
+done
+sep=
+wrongdir=
+ns=
+for arg in "$@"
+do
+    if [[ "$arg" == '--' ]] then
+        sep=1
+    elif [[ "$arg" == "-N" || "$arg" == "-s" ]] then
+        ns=1
+    elif [[ "$ns" == 1 ]] then
+        ns=0
+    elif [[ "$sep" != 1 && ${arg:0:1} != '-' || "$sep" == 1 ]] then
+        if [[ "$fa" == 0 ]] then
+            am=$(ls -l "$arg" | ws)
+        else
+            am="$fa"
+        fi
+        if [[ -e "$arg" && $(ls -l "$arg") ]] then
+            
+            if [[ "$h" == 0 ]] then 
+                echo $(find "$arg" ./ -size +"$minsize" -printf '%s\t%f\t%h\n' |
+                       sort -k3 -r | head -n "$am")
+            else
+                echo $(find "$arg" . -size +5 -printf "%f\t%h\n" | du -bh |
+                       sort -k1 -h -r | head -n 5)
+            fi
+        else
+            echo "Directory $arg does not exist">&2
+            wrongdir=1
+        fi
+    fi
+done
+if [[ wrongdir == 1 ]] then
+    exit 1
+else
+    exit 0
+fi
