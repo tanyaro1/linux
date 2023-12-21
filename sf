@@ -1,0 +1,122 @@
+#!/bin/bash
+
+dry_run=false
+printnames=false
+was_rename=false
+is_suffix=false
+separator=false
+
+function show_help {
+    echo "  -h is for help"
+    echo "  -d is for dry run"
+    echo "  -v is to see file names"
+
+}
+
+function my_rename {
+    file=$1
+    if [ -e "$file" ]
+    then
+    	if [[ !($file =~ *[/]*) ]]
+  	then
+      		file="./${file}"
+  	fi
+  	
+    path=${file%/*}
+    file=${file##*/}
+    ext=${file##*.}
+    
+    if [ "$ext" = "$file" ]
+    then
+    	ext=""
+    else
+    	ext=.$ext
+    fi
+    
+    file_no_ext=${file%.*}
+    new_filename=$path/$file_no_ext$suffix$ext
+
+    if $printnames
+    then
+    	echo $file
+    fi
+        
+    if $dry_run
+    then
+    	echo "'$file' - '$new_filename'"
+    else
+    	mv -i -- "$file" "$new_filename"
+    fi
+        
+    else
+        >&2 echo "No file $file"
+    fi
+}
+
+if [ "$#" == 0 ]; then
+    >&2 echo "No arguments"
+    exit 1
+fi
+
+while (( "$#" )) 
+do
+    if [[ $separator = true ]]
+    then
+    	if [[ $is_suffix == false ]]
+  	then
+    		suffix="$1"
+    		is_suffix=true
+  	else
+    		my_rename "$1"
+    		was_rename=true
+    	fi
+    	shift
+    else
+    	case $1 in
+	-h)
+	    show_help
+	    exit 0
+	    ;;
+	-d)
+	    dry_run=true
+	    shift
+	    ;;
+	-v)
+	    printnames=true
+	    shift
+	    ;;
+	--)
+	    separator=true
+	    shift
+	    ;;
+	-*)
+	if [[ $is_suffix == false ]]
+	then
+  	    suffix="$1"
+  	    is_suffix=true
+  	else
+  	    >&2 echo "Wrong option"
+  	    exit 1
+  	fi
+  	shift
+  	;;
+  	*)
+  	if [[ $is_suffix == false ]]
+  	then
+  	    suffix="$1"
+  	    is_suffix=true
+  	else
+  	    my_rename "$1"
+  	    was_rename=true
+  	fi
+  	shift
+  	;;
+
+	esac
+    fi
+done
+
+if [ "$was_rename" == false ]; then
+    >&2 echo "No files"
+    exit 2
+fi
